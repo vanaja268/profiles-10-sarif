@@ -1,0 +1,57 @@
+name: CI 
+on: 
+  push: 
+    branches: 'main' 
+  pull_request: 
+    branches: '*'
+
+jobs: 
+  build: 
+    runs-on: windows-latest    
+    steps: 
+      - name: Checkout repository 
+        uses: actions/checkout@v6
+      - name: Cache files 
+        uses: actions/cache@v5
+        with: 
+            path: | 
+                ~/.sonar 
+            key: ${{ runner.os }}-sonar 
+            restore-keys: ${{ runner.os }}-sonar      
+      - name: Run Codescan On Push 
+        if: github.event_name == 'push' 
+        uses: codescan-io/codescan-scanner-action@cd9694sarif1
+        with: 
+          codeScanUrl: https://preview.codescan.io
+          organization: va-github-actions
+          projectKey: profiles-10-sarif
+          login: squ_fc6f53207c584061b9427fdf7e9db28a166e2dde
+          failOnRedQualityGate: false 
+      - name: Run Codescan On PR 
+        if: github.event_name == 'pull_request' 
+        uses: codescan-io/codescan-scanner-action@cd9694sarif1
+        with: 
+          codeScanUrl: https://preview.codescan.io
+          organization: va-github-actions
+          projectKey: profiles-10-sarif
+          login: squ_fc6f53207c584061b9427fdf7e9db28a166e2dde
+          scanChangedFilesOnly: true 
+          failOnRedQualityGate: false
+          generateSarifFile: true
+          args: | 
+            sonar.pullrequest.branch=${{github.head_ref}} 
+            sonar.pullrequest.base=${{github.base_ref}} 
+            sonar.pullrequest.key=${{github.event.number}} 
+
+      - name: Upload SARIF file
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: codescan.sarif
+      - name: Archive code coverage results
+        uses: actions/upload-artifact@v6
+        with:
+          name: codescan.sarif
+          path: codescan.sarif 
+ 
+
+squ_fc6f53207c584061b9427fdf7e9db28a166e2dde
